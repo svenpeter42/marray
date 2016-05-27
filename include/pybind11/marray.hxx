@@ -29,6 +29,7 @@ template <typename Type> class PyView : public View<Type, false>
         : View<Type, false>(begin, end, data, FirstMajorOrder, FirstMajorOrder), py_array(array)
     {
     }
+
     PyView()
     {
     }
@@ -55,9 +56,11 @@ template <typename Type> class PyView : public View<Type, false>
         this->assign(begin, end, ptr, FirstMajorOrder, FirstMajorOrder);
     }
 
+#ifdef HAVE_CPP11_INITIALIZER_LISTS
     PyView(std::initializer_list<std::size_t> shape) : PyView(shape.begin(), shape.end())
     {
     }
+#endif
 };
 }
 
@@ -71,29 +74,29 @@ template <typename Type> struct pymarray_caster {
     typedef typename andres::PyView<Type> ViewType;
     typedef type_caster<typename intrinsic_type<Type>::type> value_conv;
 
-    typedef type_caster<pybind11::array_t<Type>> pyarray_caster;
+    typedef typename pybind11::array_t<Type> pyarray_type;
+    typedef type_caster<pyarray_type> pyarray_conv;
 
     bool load(handle src, bool convert)
     {
         // convert numpy array to py::array_t
-        pyarray_caster conv;
+        pyarray_conv conv;
         if (!conv.load(src, convert))
             return false;
-
-        auto pyarray = (pybind11::array_t<Type>)conv;
+        auto pyarray = (pyarray_type)conv;
 
         // convert py::array_t to andres::PyView
         auto info = pyarray.request();
         Type *ptr = (Type *)info.ptr;
 
-        andres::PyView<Type> result(pyarray, ptr, info.shape.begin(), info.shape.end());
+        ViewType result(pyarray, ptr, info.shape.begin(), info.shape.end());
         value = result;
         return true;
     }
 
     static handle cast(ViewType src, return_value_policy policy, handle parent)
     {
-        pyarray_caster conv;
+        pyarray_conv conv;
         return conv.cast(src.py_array, policy, parent);
     }
 
