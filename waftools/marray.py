@@ -28,13 +28,16 @@ TEST_VARIADIC = '''
 '''
 
 TEST_ALIAS = '''
-template<typename A, typename B>
-void dummy(A dummy0, B dummy1) { }
+template<class T>
+struct Alloc { };
+template<class T, class A>
+struct vector { };
+template<class T>
+using Vec = vector<T, Alloc<T>>; // type-id is vector<T, Alloc<T>>
+Vec<int> v; // Vec<int> is the same as vector<int, Alloc<int>>
 
-template<class C> using dummy_alias = dummy<C, bool>;
 int main()
 {
-  dummy_alias<bool, bool>(false, false);
 }
 '''
 
