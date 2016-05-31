@@ -1,6 +1,7 @@
 from waflib import Task, Options, Configure, TaskGen, Logs, Build, Utils, Errors
 from waflib.TaskGen import feature, before_method
 from waflib.Configure import conf
+import os
 
 TEST_INIT_LIST = '''
     #include <initializer_list>
@@ -63,3 +64,5 @@ def check_marray(cfg):
         msg='Checking if the compiler supports template aliases',
         fragment=TEST_ALIAS,
         mandatory=False)
+
+    cfg.env.append_value('INCLUDES', os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'include'))
