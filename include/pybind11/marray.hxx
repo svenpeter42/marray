@@ -49,7 +49,7 @@ template <typename Type> class PyView : public View<Type, false>
         }
 
         py_array = pybind11::array(pybind11::buffer_info(
-            nullptr, sizeof(Type), pybind11::format_descriptor<Type>::value(), shape.size(), shape, strides));
+            nullptr, sizeof(Type), pybind11::format_descriptor<Type>::value, shape.size(), shape, strides));
         pybind11::buffer_info info = py_array.request();
         Type *ptr = (Type *)info.ptr;
 
