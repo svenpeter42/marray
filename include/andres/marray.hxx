@@ -25,6 +25,9 @@
     #include <initializer_list>
 #endif
 
+#define marray_assert(e) if (!(e)) { throw marray_detail::MarrayAssertionFailure(#e, __FILE__, __LINE__); }
+
+
 /// The public API.
 namespace andres {
 
@@ -114,9 +117,29 @@ namespace marray_detail {
         { typedef typename IfBool<TypeTraits<A>::position >= TypeTraits<B>::position, A, B>::type type; };
 
     // assertion testing
-    template<class A> inline void Assert(A assertion) {
-        if(!assertion) throw std::runtime_error("Assertion failed.");
+class MarrayAssertionFailure : public std::exception
+{
+private:
+    std::string report;
+
+public:
+    MarrayAssertionFailure(const char *expression, const char *file, int line)
+    {
+        std::ostringstream out;
+        out << "Assertion '" << expression << "'";
+        out << " failed in file '" << file << "' line " << line;
+        report = out.str();
     }
+
+    virtual const char* what() const throw()
+    {
+        return report.c_str();
+    }
+ 
+    ~MarrayAssertionFailure() throw()
+    {
+    }
+};
 
     // geometry of views
     template<class A = std::allocator<std::size_t> > class Geometry;
@@ -655,7 +678,7 @@ View<T, isConst, A>::coordinatesToIndex
     testInvariant();
     out = 0;
     for(std::size_t j=0; j<this->dimension(); ++j, ++it) {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || static_cast<std::size_t>(*it) < shape(j));
+        marray_assert(MARRAY_NO_ARG_TEST || static_cast<std::size_t>(*it) < shape(j));
         out += static_cast<std::size_t>(*it) * geometry_.shapeStrides(j);
     }
 }
@@ -697,7 +720,7 @@ View<T, isConst, A>::coordinatesToOffset
     testInvariant();
     out = 0;
     for(std::size_t j=0; j<this->dimension(); ++j, ++it) {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || static_cast<std::size_t>(*it) < shape(j));
+        marray_assert(MARRAY_NO_ARG_TEST || static_cast<std::size_t>(*it) < shape(j));
         out += static_cast<std::size_t>(*it) * strides(j);
     }
 }
@@ -719,8 +742,8 @@ View<T, isConst, A>::indexToCoordinates
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || this->dimension() > 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || index < this->size());
+    marray_assert(MARRAY_NO_DEBUG || this->dimension() > 0);
+    marray_assert(MARRAY_NO_ARG_TEST || index < this->size());
     if(coordinateOrder() == FirstMajorOrder) {
         for(std::size_t j=0; j<this->dimension(); ++j, ++outit) {
             *outit = std::size_t(index / geometry_.shapeStrides(j));
@@ -759,7 +782,7 @@ View<T, isConst, A>::indexToOffset
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || index < this->size()); 
+    marray_assert(MARRAY_NO_ARG_TEST || index < this->size()); 
     if(isSimple()) {
         out = index;
     }
@@ -773,7 +796,7 @@ View<T, isConst, A>::indexToOffset
         }
         else { // last major order
             if(this->dimension() == 0) {
-                marray_detail::Assert(MARRAY_NO_ARG_TEST || index == 0);
+                marray_assert(MARRAY_NO_ARG_TEST || index == 0);
                 return;
             }
             else {
@@ -1170,8 +1193,8 @@ View<T, isConst, A>::operator()
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 2));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)));
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 2));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)));
     return data_[c0*strides(0) + c1*strides(1)];
 }
 
@@ -1192,8 +1215,8 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 2));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)));
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 2));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)));
     return data_[c0*strides(0) + c1*strides(1)];
 }
 
@@ -1216,8 +1239,8 @@ View<T, isConst, A>::operator()
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 3));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 3));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2)];
 }
@@ -1241,8 +1264,8 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 3));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 3));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2)];
 }
@@ -1268,8 +1291,8 @@ View<T, isConst, A>::operator()
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 4));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 4));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2) 
         + c3*strides(3)];
@@ -1296,8 +1319,8 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 4));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 4));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2) 
         + c3*strides(3)];
@@ -1326,8 +1349,8 @@ View<T, isConst, A>::operator()
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 5));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 5));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3) && c4 < shape(4)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2) 
         + c3*strides(3) + c4*strides(4)];
@@ -1356,8 +1379,8 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 5));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 5));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3) && c4 < shape(4)));
     return data_[c0*strides(0) + c1*strides(1) + c2*strides(2) 
         + c3*strides(3) + c4*strides(4)];
@@ -1397,8 +1420,8 @@ View<T, isConst, A>::operator()
 ) 
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 10));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 10));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3) && c4 < shape(4)
         && c5 < shape(5) && c6 < shape(6) && c7 < shape(7)
         && c8 < shape(8) && c9 < shape(9)));
@@ -1440,8 +1463,8 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 10));
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
+    marray_assert(MARRAY_NO_DEBUG || (data_ != 0 && dimension() == 10));
+    marray_assert(MARRAY_NO_ARG_TEST || (c0 < shape(0) && c1 < shape(1)
         && c2 < shape(2) && c3 < shape(3) && c4 < shape(4)
         && c5 < shape(5) && c6 < shape(6) && c7 < shape(7)
         && c8 < shape(8) && c9 < shape(9)));
@@ -1460,7 +1483,7 @@ View<T, isConst, A>::elementAccessHelper
     const std::size_t value    
 )
 {
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1) ) );
+    marray_assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1) ) );
     return strides(Dim-1) * value;
 }
 
@@ -1472,7 +1495,7 @@ View<T, isConst, A>::elementAccessHelper
     const std::size_t value
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1) ) );  
+    marray_assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1) ) );  
     return strides(Dim-1) * value;
 }
 
@@ -1486,7 +1509,7 @@ View<T, isConst, A>::elementAccessHelper
     const Args... args
 )
 {
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1-sizeof...(args)) ) );      
+    marray_assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1-sizeof...(args)) ) );      
     return value * strides(Dim-1-sizeof...(args)) + elementAccessHelper(Dim, args...); 
 }
 
@@ -1500,7 +1523,7 @@ View<T, isConst, A>::elementAccessHelper
     const Args... args
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1-sizeof...(args)) ) );  
+    marray_assert(MARRAY_NO_ARG_TEST || (value < shape(Dim-1-sizeof...(args)) ) );  
     return value * strides(Dim-1-sizeof...(args)) + elementAccessHelper(Dim, args...); 
 }
 
@@ -1513,7 +1536,7 @@ View<T, isConst, A>::operator()
 {
     testInvariant();
     if(dimension() == 0) {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || value == 0);
+        marray_assert(MARRAY_NO_ARG_TEST || value == 0);
         return data_[0];
     }
     else {
@@ -1532,7 +1555,7 @@ View<T, isConst, A>::operator()
 {
     testInvariant();    
     if(dimension() == 0) {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || value == 0);
+        marray_assert(MARRAY_NO_ARG_TEST || value == 0);
         return data_[0];
     }
     else {
@@ -1552,7 +1575,7 @@ View<T, isConst, A>::operator()
 )
 {
     testInvariant();
-    marray_detail::Assert( MARRAY_NO_DEBUG || ( data_ != 0 && sizeof...(args)+1 == dimension() ) );
+    marray_assert( MARRAY_NO_DEBUG || ( data_ != 0 && sizeof...(args)+1 == dimension() ) );
     return data_[strides(0)*value + elementAccessHelper(sizeof...(args)+1, args...) ];
 }
 
@@ -1566,7 +1589,7 @@ View<T, isConst, A>::operator()
 ) const
 {
     testInvariant();
-    marray_detail::Assert( MARRAY_NO_DEBUG || ( data_ != 0 && sizeof...(args)+1 == dimension() ) );
+    marray_assert( MARRAY_NO_DEBUG || ( data_ != 0 && sizeof...(args)+1 == dimension() ) );
     return data_[ strides(0) * static_cast<std::size_t>(value) 
         + static_cast<std::size_t>(elementAccessHelper(sizeof...(args)+1, args...)) ];
 }
@@ -1594,7 +1617,7 @@ template<class T, bool isConst, class A>
 inline const std::size_t
 View<T, isConst, A>::dimension() const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || this->data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || this->data_ != 0);
     return geometry_.dimension();
 }
 
@@ -1611,8 +1634,8 @@ View<T, isConst, A>::shape
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || dimension < this->dimension());
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || dimension < this->dimension());
     return geometry_.shape(dimension);
 }
 
@@ -1626,7 +1649,7 @@ inline const std::size_t*
 View<T, isConst, A>::shapeBegin() const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
     return geometry_.shapeBegin();
 }
 
@@ -1640,7 +1663,7 @@ inline const std::size_t*
 View<T, isConst, A>::shapeEnd() const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
     return geometry_.shapeEnd();
 }
 
@@ -1657,8 +1680,8 @@ View<T, isConst, A>::strides
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || dimension < this->dimension());
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || dimension < this->dimension());
     return geometry_.strides(dimension);
 }
 
@@ -1672,7 +1695,7 @@ inline const std::size_t*
 View<T, isConst, A>::stridesBegin() const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
     return geometry_.stridesBegin();
 }
 
@@ -1686,7 +1709,7 @@ inline const std::size_t*
 View<T, isConst, A>::stridesEnd() const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
     return geometry_.stridesEnd();
 }
 
@@ -1810,7 +1833,7 @@ View<T, isConst, A>::operator=
     const T& value
 )
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || data_ != 0);
     if(isSimple()) {
         for(std::size_t j=0; j<geometry_.size(); ++j) {
             data_[j] = value;
@@ -2206,11 +2229,11 @@ View<T, isConst, A>::reshape
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || isSimple());
+    marray_assert(MARRAY_NO_DEBUG || isSimple());
     if(!MARRAY_NO_ARG_TEST) {
         std::size_t size = std::accumulate(begin, end, static_cast<std::size_t>(1), 
             std::multiplies<std::size_t>());
-        marray_detail::Assert(size == this->size());
+        marray_assert(size == this->size());
     }
     assign(begin, end, data_, coordinateOrder(), coordinateOrder());
     testInvariant();
@@ -2306,7 +2329,7 @@ View<T, isConst, A>::boundView
 ) const
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (dimension < this->dimension()
+    marray_assert(MARRAY_NO_ARG_TEST || (dimension < this->dimension()
         && value < shape(dimension)));
     if(this->dimension() == 1) {
         View v(&((*this)(value)));
@@ -2425,7 +2448,7 @@ View<T, isConst, A>::permute
 {
     testInvariant();
     if(!MARRAY_NO_ARG_TEST) {
-        marray_detail::Assert(dimension() != 0);
+        marray_assert(dimension() != 0);
         std::set<std::size_t> s1, s2;
         CoordinateIterator it = begin;
         for(std::size_t j=0; j<dimension(); ++j) {
@@ -2433,7 +2456,7 @@ View<T, isConst, A>::permute
             s2.insert(*it);
             ++it;
         }
-        marray_detail::Assert(s1 == s2);
+        marray_assert(s1 == s2);
     }
     // update shape, shape strides, strides, and simplicity
     std::vector<std::size_t> newShape = std::vector<std::size_t>(dimension());
@@ -2490,7 +2513,7 @@ View<T, isConst, A>::transpose
 )
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_ARG_TEST ||
+    marray_assert(MARRAY_NO_ARG_TEST ||
         (dimension() != 0 && c1 < dimension() && c2 < dimension()));
 
     std::size_t j1 = c1;
@@ -2595,7 +2618,7 @@ View<T, isConst, A>::shift
 ) 
 {
     testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || dimension() != 0);
+    marray_assert(MARRAY_NO_DEBUG || dimension() != 0);
     if(n <= -static_cast<int>(dimension()) || n >= static_cast<int>(dimension())) {
         shift(n % static_cast<int>(dimension()));
     }
@@ -2796,33 +2819,33 @@ View<T, isConst, A>::testInvariant() const
 {
     if(!MARRAY_NO_DEBUG) {
         if(geometry_.dimension() == 0) {
-            marray_detail::Assert(geometry_.isSimple() == true);
+            marray_assert(geometry_.isSimple() == true);
             if(data_ != 0) { // scalar
-                marray_detail::Assert(geometry_.size() == 1);
+                marray_assert(geometry_.size() == 1);
             }
         }
         else {
-            marray_detail::Assert(data_ != 0);
+            marray_assert(data_ != 0);
 
             // test size_ to be consistent with shape_
             std::size_t testSize = 1;
             for(std::size_t j=0; j<geometry_.dimension(); ++j) {
                 testSize *= geometry_.shape(j);
             }
-            marray_detail::Assert(geometry_.size() == testSize);
+            marray_assert(geometry_.size() == testSize);
 
             // test shapeStrides_ to be consistent with shape_
             if(geometry_.coordinateOrder() == FirstMajorOrder) {
                 std::size_t tmp = 1;
                 for(std::size_t j=0; j<geometry_.dimension(); ++j) {
-                    marray_detail::Assert(geometry_.shapeStrides(geometry_.dimension()-j-1) == tmp);
+                    marray_assert(geometry_.shapeStrides(geometry_.dimension()-j-1) == tmp);
                     tmp *= geometry_.shape(geometry_.dimension()-j-1);
                 }
             }
             else {
                 std::size_t tmp = 1;
                 for(std::size_t j=0; j<geometry_.dimension(); ++j) {
-                    marray_detail::Assert(geometry_.shapeStrides(j) == tmp);
+                    marray_assert(geometry_.shapeStrides(j) == tmp);
                     tmp *= geometry_.shape(j);
                 }
             }
@@ -2830,7 +2853,7 @@ View<T, isConst, A>::testInvariant() const
             // test the simplicity condition 
             if(geometry_.isSimple()) {
                 for(std::size_t j=0; j<geometry_.dimension(); ++j) {
-                    marray_detail::Assert(geometry_.strides(j) == geometry_.shapeStrides(j));
+                    marray_assert(geometry_.strides(j) == geometry_.shapeStrides(j));
                 }
             }
         }
@@ -3430,11 +3453,11 @@ Marray<T, A>::Marray
     }
     const E& e = static_cast<const E&>(expression);
     if(e.dimension() == 0) {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || e.size() < 2);
+        marray_assert(MARRAY_NO_ARG_TEST || e.size() < 2);
         this->data_[0] = static_cast<T>(e(0));
     }
     else {
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || e.size() != 0);
+        marray_assert(MARRAY_NO_ARG_TEST || e.size() != 0);
         marray_detail::operate(*this, e, marray_detail::Assign<T, Te>());
     }
     testInvariant();
@@ -3465,7 +3488,7 @@ Marray<T, A>::Marray
 {
     std::size_t size = std::accumulate(begin, end, static_cast<std::size_t>(1), 
         std::multiplies<std::size_t>());
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || size != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || size != 0);
     base::assign(begin, end, dataAllocator_.allocate(size), coordinateOrder, 
         coordinateOrder, allocator); 
     for(std::size_t j=0; j<size; ++j) {
@@ -3499,7 +3522,7 @@ Marray<T, A>::Marray
 {
     std::size_t size = std::accumulate(begin, end, static_cast<std::size_t>(1), 
         std::multiplies<std::size_t>());
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || size != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || size != 0);
     base::assign(begin, end, dataAllocator_.allocate(size), coordinateOrder, 
         coordinateOrder, allocator); 
     testInvariant();
@@ -3528,7 +3551,7 @@ Marray<T, A>::Marray
 {
     std::size_t size = std::accumulate(shape.begin(), shape.end(), 
         static_cast<std::size_t>(1), std::multiplies<std::size_t>());
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || size != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || size != 0);
     base::assign(shape.begin(), shape.end(), dataAllocator_.allocate(size), 
                  coordinateOrder, coordinateOrder, allocator); 
     std::fill(this->data_, this->data_+size, value);
@@ -3693,7 +3716,7 @@ Marray<T, A>::operator=
     const T& value
 )
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || this->data_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || this->data_ != 0);
     for(std::size_t j=0; j<this->size(); ++j) {
         this->data_[j] = value;
     }
@@ -3756,7 +3779,7 @@ Marray<T, A>::resizeHelper
     std::size_t newSize = 1;
     for(ShapeIterator it = begin; it != end; ++it) {
         std::size_t x = static_cast<std::size_t>(*it);
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || x > 0);
+        marray_assert(MARRAY_NO_ARG_TEST || x > 0);
         newShape.push_back(x);
         newSize *= x;
     }
@@ -3881,7 +3904,7 @@ inline void
 Marray<T, A>::testInvariant() const
 {
     View<T, false, A>::testInvariant();
-    marray_detail::Assert(MARRAY_NO_DEBUG || this->geometry_.isSimple());
+    marray_assert(MARRAY_NO_DEBUG || this->geometry_.isSimple());
 }
 
 // iterator implementation
@@ -3894,38 +3917,38 @@ Iterator<T, isConst, A>::testInvariant() const
 {
     if(!MARRAY_NO_DEBUG) {
         if(view_ == 0) { 
-            marray_detail::Assert(coordinates_.size() == 0 
+            marray_assert(coordinates_.size() == 0 
                 && index_ == 0
                 && pointer_ == 0);
         }
         else { 
             if(view_->size() == 0) { // un-initialized view
-                marray_detail::Assert(coordinates_.size() == 0 
+                marray_assert(coordinates_.size() == 0 
                     && index_ == 0
                     && pointer_ == 0);
             }
             else { // initialized view
-                marray_detail::Assert(index_ >= 0 && index_ <= view_->size());
+                marray_assert(index_ >= 0 && index_ <= view_->size());
                 if(index_ == view_->size()) { // end iterator
-                    marray_detail::Assert(pointer_ == &((*view_)(view_->size()-1)) + 1);
+                    marray_assert(pointer_ == &((*view_)(view_->size()-1)) + 1);
                 }
                 else {
-                    marray_detail::Assert(pointer_ == &((*view_)(index_)));
+                    marray_assert(pointer_ == &((*view_)(index_)));
                 }
                 if(!view_->isSimple()) {
-                    marray_detail::Assert(coordinates_.size() == view_->dimension());
+                    marray_assert(coordinates_.size() == view_->dimension());
                     if(index_ == view_->size()) { // end iterator
                         if(view_->coordinateOrder() == LastMajorOrder) {
-                            marray_detail::Assert(coordinates_[0] == view_->shape(0));
+                            marray_assert(coordinates_[0] == view_->shape(0));
                             for(std::size_t j=1; j<coordinates_.size(); ++j) {
-                                marray_detail::Assert(coordinates_[j] == view_->shape(j)-1);
+                                marray_assert(coordinates_[j] == view_->shape(j)-1);
                             }
                         }
                         else { // FirstMajorOrder
                             std::size_t d = view_->dimension() - 1;
-                            marray_detail::Assert(coordinates_[d] == view_->shape(d));
+                            marray_assert(coordinates_[d] == view_->shape(d));
                             for(std::size_t j=0; j<d; ++j) {
-                                marray_detail::Assert(coordinates_[j] == view_->shape(j)-1);
+                                marray_assert(coordinates_[j] == view_->shape(j)-1);
                             }
                         }
                     }
@@ -3933,7 +3956,7 @@ Iterator<T, isConst, A>::testInvariant() const
                         std::vector<std::size_t> testCoord(coordinates_.size());
                         view_->indexToCoordinates(index_, testCoord.begin());
                         for(std::size_t j=0; j<coordinates_.size(); ++j) {
-                            marray_detail::Assert(coordinates_[j] == testCoord[j]);
+                            marray_assert(coordinates_[j] == testCoord[j]);
                         }
                     }
                 }
@@ -3973,11 +3996,11 @@ inline Iterator<T, isConst, A>::Iterator
     // not be possible to construct a mutable iterator on constant data.
 {
     if(view.size() == 0) { // un-initialized view
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || index == 0);
+        marray_assert(MARRAY_NO_ARG_TEST || index == 0);
     }
     else {
         if(view.isSimple()) {
-            marray_detail::Assert(MARRAY_NO_ARG_TEST || index <= view.size());
+            marray_assert(MARRAY_NO_ARG_TEST || index <= view.size());
             pointer_ = &view(0) + index;
         }
         else {
@@ -4027,11 +4050,11 @@ inline Iterator<T, isConst, A>::Iterator
     // a constant iterator on mutable data.
 {
     if(view.size() == 0) { // un-initialized view
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || index == 0);
+        marray_assert(MARRAY_NO_ARG_TEST || index == 0);
     }
     else {
         if(view.isSimple()) {
-            marray_detail::Assert(MARRAY_NO_ARG_TEST || index <= view.size());
+            marray_assert(MARRAY_NO_ARG_TEST || index <= view.size());
             pointer_ = &view(0) + index;
         }
         else {
@@ -4081,11 +4104,11 @@ inline Iterator<T, isConst, A>::Iterator
     // a constant iterator on mutable data.
 {
     if(view.size() == 0) { // un-initialized view
-        marray_detail::Assert(MARRAY_NO_ARG_TEST || index == 0);
+        marray_assert(MARRAY_NO_ARG_TEST || index == 0);
     }
     else {
         if(view.isSimple()) {
-            marray_detail::Assert(MARRAY_NO_ARG_TEST || index <= view.size());
+            marray_assert(MARRAY_NO_ARG_TEST || index <= view.size());
             pointer_ = &view(0) + index;
         }
         else {
@@ -4135,7 +4158,7 @@ template<class T, bool isConst, class A>
 inline typename Iterator<T, isConst, A>::reference
 Iterator<T, isConst, A>::operator*() const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ < view_->size()));
+    marray_assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ < view_->size()));
     return *pointer_;
 }
 
@@ -4145,7 +4168,7 @@ template<class T, bool isConst, class A>
 inline typename Iterator<T, isConst, A>::pointer
 Iterator<T, isConst, A>::operator->() const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ < view_->size()));
+    marray_assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ < view_->size()));
     return pointer_;
 }
 
@@ -4158,7 +4181,7 @@ Iterator<T, isConst, A>::operator[]
     const std::size_t x
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || (view_ != 0 && x+index_ < view_->size()));
+    marray_assert(MARRAY_NO_DEBUG || (view_ != 0 && x+index_ < view_->size()));
     return (*view_)(x+index_);
 }
 
@@ -4169,7 +4192,7 @@ Iterator<T, isConst, A>::operator+=
     const difference_type& x
 )
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     if(index_ < view_->size()) { // view initialized and iterator not at the end
         if(index_ + x < view_->size()) {
             index_ += x;
@@ -4210,8 +4233,8 @@ Iterator<T, isConst, A>::operator-=
     const difference_type& x
 )
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || static_cast<difference_type>(index_) >= x);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || static_cast<difference_type>(index_) >= x);
     index_ -= x;
     if(view_->isSimple()) {
         pointer_ -= x;
@@ -4230,7 +4253,7 @@ template<class T, bool isConst, class A>
 inline Iterator<T, isConst, A>&
 Iterator<T, isConst, A>::operator++()
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     if(index_ < view_->size()) { // view initialized and iterator not at the end
         ++index_;
         if(view_->isSimple()) {
@@ -4294,7 +4317,7 @@ template<class T, bool isConst, class A>
 inline Iterator<T, isConst, A>&
 Iterator<T, isConst, A>::operator--()
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ > 0));
+    marray_assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ > 0));
     --index_;
     if(view_->isSimple()) {
         --pointer_;
@@ -4356,7 +4379,7 @@ template<class T, bool isConst, class A>
 inline Iterator<T, isConst, A> 
 Iterator<T, isConst, A>::operator++(int)
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     Iterator<T, isConst, A> copy = *this;
     ++(*this);
     return copy;
@@ -4368,7 +4391,7 @@ template<class T, bool isConst, class A>
 inline Iterator<T, isConst, A> 
 Iterator<T, isConst, A>::operator--(int)
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ > 0));
+    marray_assert(MARRAY_NO_DEBUG || (view_ != 0 && index_ > 0));
     Iterator<T, isConst, A> copy = *this;
     --(*this);
     return copy;
@@ -4381,7 +4404,7 @@ Iterator<T, isConst, A>::operator+
     const difference_type& x
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     Iterator<T, isConst, A> tmp = *this;
     tmp += x;
     return tmp;
@@ -4394,7 +4417,7 @@ Iterator<T, isConst, A>::operator-
     const difference_type& x
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     Iterator<T, isConst, A> tmp = *this;
     tmp -= x;
     return tmp;
@@ -4408,8 +4431,8 @@ Iterator<T, isConst, A>::operator-
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || it.view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || it.view_ != 0);
     return difference_type(index_)-difference_type(it.index_);
 }
 
@@ -4421,8 +4444,8 @@ Iterator<T, isConst, A>::operator==
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && (void*)it.view_ == (void*)view_));
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && (void*)it.view_ == (void*)view_));
     return index_ == it.index_;
 }
 
@@ -4434,9 +4457,9 @@ Iterator<T, isConst, A>::operator!=
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || it.view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || 
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || it.view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || 
         static_cast<const void*>(it.view_) == static_cast<const void*>(view_));
     return index_ != it.index_;
 }
@@ -4449,8 +4472,8 @@ Iterator<T, isConst, A>::operator<
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
     return(index_ < it.index_);
 }
 
@@ -4462,8 +4485,8 @@ Iterator<T, isConst, A>::operator>
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
     return(index_ > it.index_);
 }
 
@@ -4475,8 +4498,8 @@ Iterator<T, isConst, A>::operator<=
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
     return(index_ <= it.index_);
 }
 
@@ -4488,8 +4511,8 @@ Iterator<T, isConst, A>::operator>=
     const Iterator<T, isConstLocal, A>& it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || (it.view_ != 0 && it.view_ == view_));
     return(index_ >= it.index_);
 }
 
@@ -4501,7 +4524,7 @@ template<class T, bool isConst, class A>
 inline bool
 Iterator<T, isConst, A>::hasMore() const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
     return index_ < view_->size();
 }
 
@@ -4529,8 +4552,8 @@ Iterator<T, isConst, A>::coordinate
     CoordinateIterator it
 ) const
 {
-    marray_detail::Assert(MARRAY_NO_DEBUG || view_ != 0);
-    marray_detail::Assert(MARRAY_NO_ARG_TEST || index_ < view_->size());
+    marray_assert(MARRAY_NO_DEBUG || view_ != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || index_ < view_->size());
     if(view_->isSimple()) {
         view_->indexToCoordinates(index_, it);
     }
@@ -4700,10 +4723,10 @@ public:
           binaryFunctor_(BinaryFunctor()) 
         {
             if(!MARRAY_NO_DEBUG) {
-                marray_detail::Assert(e1_.size() != 0 && e2_.size() != 0);
-                marray_detail::Assert(e1_.dimension() == e2_.dimension());
+                marray_assert(e1_.size() != 0 && e2_.size() != 0);
+                marray_assert(e1_.dimension() == e2_.dimension());
                 for(std::size_t j=0; j<e1_.dimension(); ++j) {
-                    marray_detail::Assert(e1_.shape(j) == e2_.shape(j));
+                    marray_assert(e1_.shape(j) == e2_.shape(j));
                 }
             }
         }
@@ -5193,7 +5216,7 @@ template<class A>
 inline const std::size_t 
 Geometry<A>::shape(const std::size_t j) const
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return shape_[j]; 
 }
 
@@ -5201,7 +5224,7 @@ template<class A>
 inline std::size_t& 
 Geometry<A>::shape(const std::size_t j)
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return shape_[j]; 
 }
 
@@ -5212,7 +5235,7 @@ Geometry<A>::shapeStrides
     const std::size_t j
 ) const
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return shapeStrides_[j]; 
 }
 
@@ -5223,7 +5246,7 @@ Geometry<A>::shapeStrides
     const std::size_t j
 )
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return shapeStrides_[j]; 
 }
 
@@ -5234,7 +5257,7 @@ Geometry<A>::strides
     const std::size_t j
 ) const
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return strides_[j]; 
 }
 
@@ -5245,7 +5268,7 @@ Geometry<A>::strides
     const std::size_t j
 )
 { 
-    Assert(MARRAY_NO_DEBUG || j<dimension_); 
+    marray_assert(MARRAY_NO_DEBUG || j<dimension_); 
     return strides_[j]; 
 }
 
@@ -5399,7 +5422,7 @@ stridesFromShape
     const CoordinateOrder& coordinateOrder
 ) 
 {
-    Assert(MARRAY_NO_ARG_TEST || std::distance(begin, end) != 0);
+    marray_assert(MARRAY_NO_ARG_TEST || std::distance(begin, end) != 0);
     std::size_t dimension = std::distance(begin, end);
     ShapeIterator shapeIt;
     StridesIterator strideIt;
@@ -5554,9 +5577,9 @@ struct AssignmentOperatorHelper<false, TFrom, TTo, AFrom, ATo>
         typedef typename View<TFrom, true, AFrom>::const_iterator FromIterator;
         typedef typename View<TTo, false, ATo>::iterator ToIterator;
         if(!MARRAY_NO_ARG_TEST) {
-            Assert(from.data_ != 0 && from.dimension() == to.dimension());
+            marray_assert(from.data_ != 0 && from.dimension() == to.dimension());
             for(std::size_t j=0; j<from.dimension(); ++j) {
-                Assert(from.shape(j) == to.shape(j));
+                marray_assert(from.shape(j) == to.shape(j));
             }
         }
         if(from.overlaps(to)) {
@@ -5612,15 +5635,15 @@ struct AssignmentOperatorHelper<false, TFrom, TTo, AFrom, ATo>
         if(static_cast<const void*>(&from) != static_cast<const void*>(&to)) { // no self-assignment
             if(to.data_ == 0) { // if the view 'to' is not initialized
                 // initialize the view 'to' with source data
-                Assert(MARRAY_NO_ARG_TEST || sizeof(TTo) == sizeof(TFrom));
+                marray_assert(MARRAY_NO_ARG_TEST || sizeof(TTo) == sizeof(TFrom));
                 to.data_ = static_cast<TTo*>(static_cast<void*>(from.data_)); // copy pointer
                 to.geometry_ = from.geometry_;
             }
             else { // if the view 'to' is initialized
                 if(!MARRAY_NO_ARG_TEST) {
-                    Assert(from.data_ != 0 && from.dimension() == to.dimension());
+                    marray_assert(from.data_ != 0 && from.dimension() == to.dimension());
                     for(std::size_t j=0; j<from.dimension(); ++j) {
-                        Assert(from.shape(j) == to.shape(j));
+                        marray_assert(from.shape(j) == to.shape(j));
                     }
                 }
                 if(from.overlaps(to)) {
@@ -5675,7 +5698,7 @@ struct AssignmentOperatorHelper<true, TFrom, TTo, AFrom, ATo>
         View<TTo, true, ATo>& to
     )
     {
-        Assert(MARRAY_NO_ARG_TEST || sizeof(TFrom) == sizeof(TTo));
+        marray_assert(MARRAY_NO_ARG_TEST || sizeof(TFrom) == sizeof(TTo));
         to.data_ = static_cast<const TTo*>(
             static_cast<const void*>(from.data_)); // copy pointer
         to.geometry_ = from.geometry_;
@@ -5691,8 +5714,8 @@ struct AccessOperatorHelper<true>
     execute(const View<T, isConst, A>& v, const U& index)
     {
         v.testInvariant();
-        Assert(MARRAY_NO_DEBUG || v.data_ != 0);
-        Assert(MARRAY_NO_DEBUG || v.dimension() != 0 || index == 0);
+        marray_assert(MARRAY_NO_DEBUG || v.data_ != 0);
+        marray_assert(MARRAY_NO_DEBUG || v.dimension() != 0 || index == 0);
         std::size_t offset;
         v.indexToOffset(index, offset);
         return v.data_[offset];
@@ -5708,8 +5731,8 @@ struct AccessOperatorHelper<false>
     execute(const View<T, isConst, A>& v, U it)
     {
         v.testInvariant();
-        Assert(MARRAY_NO_DEBUG || v.data_ != 0);
-        Assert(MARRAY_NO_DEBUG || v.dimension() != 0 || *it == 0);
+        marray_assert(MARRAY_NO_DEBUG || v.data_ != 0);
+        marray_assert(MARRAY_NO_DEBUG || v.dimension() != 0 || *it == 0);
         std::size_t offset;
         v.coordinatesToOffset(it, offset);
         return v.data_[offset];
@@ -5809,11 +5832,11 @@ operate
 )
 {
     if(!MARRAY_NO_ARG_TEST) {
-        Assert(v.size() != 0 && w.size() != 0);
-        Assert(w.dimension() == 0 || v.dimension() == w.dimension());
+        marray_assert(v.size() != 0 && w.size() != 0);
+        marray_assert(w.dimension() == 0 || v.dimension() == w.dimension());
         if(w.dimension() != 0) {
             for(std::size_t j=0; j<v.dimension(); ++j) {
-                Assert(v.shape(j) == w.shape(j));
+                marray_assert(v.shape(j) == w.shape(j));
             }
         }
     }
@@ -5889,10 +5912,10 @@ operate
                 typename View<T1, false>::iterator itV = v.begin();
                 typename View<T2, isConst>::const_iterator itW = w.begin();
                 for(; itV.hasMore(); ++itV, ++itW) {
-                    Assert(MARRAY_NO_DEBUG || itW.hasMore());
+                    marray_assert(MARRAY_NO_DEBUG || itW.hasMore());
                     f(*itV, *itW);
                 }
-                Assert(MARRAY_NO_DEBUG || !itW.hasMore());
+                marray_assert(MARRAY_NO_DEBUG || !itW.hasMore());
             }
         }
     }
@@ -5908,14 +5931,14 @@ inline void operate
 {
     const E& e = expression; // cast
     if(!MARRAY_NO_DEBUG) {
-        Assert(v.size() != 0 && e.size() != 0);
-        Assert(e.dimension() == v.dimension());
+        marray_assert(v.size() != 0 && e.size() != 0);
+        marray_assert(e.dimension() == v.dimension());
         if(v.dimension() == 0) {
-            Assert(v.size() == 1 && e.size() == 1);
+            marray_assert(v.size() == 1 && e.size() == 1);
         }
         else {
             for(std::size_t j=0; j<v.dimension(); ++j) {
-                Assert(v.shape(j) == e.shape(j));
+                marray_assert(v.shape(j) == e.shape(j));
             }
         }
     }
