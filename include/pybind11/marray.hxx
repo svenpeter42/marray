@@ -4,6 +4,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/cast.h>
 #include <type_traits>
+#include <vector>
+
+using std::vector;
 
 namespace pybind11
 {
@@ -24,10 +27,11 @@ template <typename Type> class PyView : public View<Type, false>
     pybind11::array_t<Type> py_array;
 
   public:
-    template <class ShapeIterator>
-    PyView(pybind11::array_t<Type> array, Type *data, ShapeIterator begin, ShapeIterator end)
+    template <class ShapeIterator, class StrideIterator>
+    PyView(pybind11::array_t<Type> array, Type *data, ShapeIterator begin, ShapeIterator end, StrideIterator strides)
         : View<Type, false>(begin, end, data, FirstMajorOrder, FirstMajorOrder), py_array(array)
     {
+        this->assign(begin, end, strides, data, FirstMajorOrder);
     }
 
     PyView()
@@ -60,7 +64,23 @@ template <typename Type> class PyView : public View<Type, false>
     PyView(std::initializer_list<std::size_t> shape) : PyView(shape.begin(), shape.end())
     {
     }
+
+    PyView(std::vector<Type> v) : PyView({v.size()})
+    {
+        for (size_t i = 0; i < v.size(); ++i)
+            this->operator[](i) = v[i];
+    }
 #endif
+
+    const Type & operator[](const uint64_t idx) const {
+        return this->operator()(idx);
+    }
+
+    Type & operator[](const uint64_t idx) {
+        return this->operator()(idx);
+    }
+
+
 };
 }
 
@@ -77,19 +97,50 @@ template <typename Type> struct pymarray_caster {
     typedef typename pybind11::array_t<Type> pyarray_type;
     typedef type_caster<pyarray_type> pyarray_conv;
 
+    typedef vector<Type> vector_type;
+    typedef type_caster<vector_type> vector_conv;
+
+#if 0
+    bool load_vector(handle src, bool convert)
+    {
+        vector_conv conv;
+
+        if (!conv.load(src, convert))
+            return false;
+
+        vector_type v = (vector_type)conv;
+        ViewType result({v.size()});
+
+        for (size_t i = 0; i < v.size(); ++i) {
+            std::cout << "convert " << i << " " << v[i] << "\n";
+            result(i) = v[i];
+        }
+
+        value = result;
+
+        return true;
+    }
+#endif
+
     bool load(handle src, bool convert)
     {
         // convert numpy array to py::array_t
         pyarray_conv conv;
         if (!conv.load(src, convert))
-            return false;
+        //    return load_vector(src, convert);
+        return false;
+
         auto pyarray = (pyarray_type)conv;
 
         // convert py::array_t to andres::PyView
         auto info = pyarray.request();
         Type *ptr = (Type *)info.ptr;
 
-        ViewType result(pyarray, ptr, info.shape.begin(), info.shape.end());
+        std::vector<size_t> strides(info.strides.begin(),info.strides.end());
+        for (size_t i = 0; i < strides.size(); ++i)
+            strides[i] /= sizeof(Type);
+
+        ViewType result(pyarray, ptr, info.shape.begin(), info.shape.end(), strides.begin());
         value = result;
         return true;
     }
